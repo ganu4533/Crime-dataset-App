@@ -9,48 +9,65 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
 
-# Page config
+# --- Page config & Styling ---
 st.set_page_config(page_title="Crime Classification App", layout="wide")
+
+# Inject CSS
+st.markdown("""
+    <style>
+        .main { background-color: #f7f9fa; }
+        h1, h2, h3 { color: #003262; }
+        .stButton>button {
+            background-color: #003262;
+            color: white;
+            border-radius: 8px;
+            padding: 0.5em 1em;
+        }
+        .stSelectbox>div>div {
+            font-size: 16px;
+        }
+        .stDataFrame th {
+            background-color: #e0e0e0;
+        }
+    </style>
+""", unsafe_allow_html=True)
+
 st.title("🔍 Crime Classification using Logistic Regression")
 st.markdown("This app classifies districts as **High** or **Low Crime** using 5 key crime features.")
 
 # --- Load Data ---
 try:
-    df = pd.read_csv("crime_data.csv")  # Make sure this file is in the same folder
+    df = pd.read_csv("crime_data.csv")
 except FileNotFoundError:
     st.error("❌ 'crime_data.csv' not found in app directory.")
     st.stop()
 
-# Strip whitespace and drop missing
 df.columns = df.columns.str.strip()
 df.dropna(inplace=True)
 
-# Target: High(1) or Low(0) based on median
+# --- Target column ---
 threshold = df['Total Cognizable IPC crimes'].median()
 df['Target'] = (df['Total Cognizable IPC crimes'] > threshold).astype(int)
 
 # --- Visualizations ---
-st.subheader("Dataset Preview")
-st.dataframe(df.head())
+st.subheader("📊 Dataset Preview")
+st.dataframe(df.head(), use_container_width=True)
 
-st.subheader("Target Variable Distribution")
+st.subheader("🎯 Target Distribution")
 fig1, ax1 = plt.subplots()
 sns.countplot(x='Target', data=df, ax=ax1)
 ax1.set_title("High vs Low Crime Districts")
 st.pyplot(fig1)
 
-st.subheader("Correlation Heatmap")
+st.subheader("🔗 Feature Correlation Heatmap")
 fig2, ax2 = plt.subplots(figsize=(12, 8))
 sns.heatmap(df.corr(numeric_only=True), cmap="coolwarm", ax=ax2)
 st.pyplot(fig2)
 
 # --- Model Setup ---
-
-# Drop non-feature columns
 drop_cols = ['States/UTs', 'District', 'Year', 'Total Cognizable IPC crimes']
 df_model = df.drop(columns=drop_cols)
 
-# Select correct column names that exist
 selected_features = ['Murder', 'Attempt to commit Murder', 'Rape', 'Kidnapping & Abduction_Total', 'Robbery']
 missing_features = [col for col in selected_features if col not in df_model.columns]
 if missing_features:
@@ -69,13 +86,13 @@ model = LogisticRegression()
 model.fit(X_train, y_train)
 y_pred = model.predict(X_test)
 
-# --- Model Evaluation ---
-st.subheader("Model Performance")
-st.write("**Accuracy:**", accuracy_score(y_test, y_pred))
+# --- Evaluation ---
+st.subheader("📈 Model Performance")
+st.metric(label="Accuracy", value=f"{accuracy_score(y_test, y_pred):.2f}")
 st.text("Classification Report")
-st.text(classification_report(y_test, y_pred))
+st.code(classification_report(y_test, y_pred), language='text')
 
-st.subheader("Confusion Matrix")
+st.subheader("📉 Confusion Matrix")
 fig3, ax3 = plt.subplots()
 cm = confusion_matrix(y_test, y_pred)
 sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', ax=ax3, xticklabels=['Low', 'High'], yticklabels=['Low', 'High'])
@@ -83,18 +100,32 @@ ax3.set_xlabel("Predicted")
 ax3.set_ylabel("Actual")
 st.pyplot(fig3)
 
-# --- Prediction Section ---
-st.subheader("🔮 Predict Crime Level for a New District")
+# --- Predict Crime Level by District ---
+st.subheader("🧠 Predict Crime Level by District")
 
-input_data = []
-st.markdown("Enter values for the following crime types:")
-for feature in selected_features:
-    val = st.number_input(f"{feature}", min_value=0.0, value=0.0, step=1.0)
-    input_data.append(val)
+# Cascading filters
+states = sorted(df['States/UTs'].unique())
+selected_state = st.selectbox("Select State/UT", states)
+filtered_df = df[df['States/UTs'] == selected_state]
 
-if st.button("Predict Crime Level"):
-    input_array = np.array(input_data).reshape(1, -1)
-    input_scaled = scaler.transform(input_array)
+districts = sorted(filtered_df['District'].unique())
+selected_district = st.selectbox("Select District", districts)
+
+district_row = filtered_df[filtered_df['District'] == selected_district].sort_values("Year", ascending=False).head(1)
+
+if district_row.empty:
+    st.warning("No data found for the selected district.")
+else:
+    st.markdown("### 🔎 District Crime Data Used for Prediction")
+    display_cols = selected_features
+    st.dataframe(district_row[display_cols], use_container_width=True)
+
+    # Predict
+    input_data = district_row[display_cols].values
+    input_scaled = scaler.transform(input_data)
     prediction = model.predict(input_scaled)[0]
-    result = "High Crime" if prediction == 1 else "Low Crime"
-    st.success(f"🧠 Prediction: **{result}**")
+    proba = model.predict_proba(input_scaled)[0][1]
+
+    result = "🔴 High Crime" if prediction == 1 else "🟢 Low Crime"
+    st.success(f"📍 **{selected_district}**, {selected_state}: **{result}**")
+    st.info(f"📊 Model Confidence (High Crime): **{proba:.2f}**")
