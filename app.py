@@ -9,54 +9,46 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
 
-# --- Page config & Glassmorphism CSS ---
+# --- Page config & Custom CSS ---
 st.set_page_config(page_title="Crime Classification App", layout="wide")
 
+# Glassmorphism Enhanced CSS
 st.markdown("""
     <style>
-        body {
-            background: linear-gradient(145deg, #e0f7fa, #ffffff);
-            background-size: cover;
+        html, body, [data-testid="stAppViewContainer"] {
+            background: linear-gradient(135deg, #d3ecf9, #ffffff) !important;
         }
 
-        .main {
-            background: rgba(255, 255, 255, 0.15);
-            border-radius: 16px;
-            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.2);
+        [data-testid="stSidebar"], .stApp {
+            background: rgba(255, 255, 255, 0.1) !important;
+            border-radius: 20px;
             backdrop-filter: blur(10px);
             -webkit-backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.18);
+            border: 1px solid rgba(255, 255, 255, 0.3);
             padding: 2rem;
+        }
+
+        .stDataFrame, .stTable, .stMarkdown, .stSelectbox, .stButton {
+            background-color: rgba(255,255,255,0.6) !important;
+            border-radius: 12px !important;
+            padding: 1rem !important;
+            backdrop-filter: blur(8px);
         }
 
         h1, h2, h3 {
             color: #003262;
-            font-weight: 700;
         }
 
-        .stButton>button {
+        .stButton > button {
             background-color: #003262;
             color: white;
             border-radius: 10px;
-            padding: 0.5em 1.2em;
-            border: none;
-            transition: 0.3s ease;
+            padding: 8px 16px;
+            transition: 0.3s ease-in-out;
         }
 
-        .stButton>button:hover {
-            background-color: #005fa3;
-        }
-
-        .stSelectbox>div>div {
-            font-size: 16px;
-        }
-
-        .stDataFrame th {
-            background-color: #e3f2fd;
-        }
-
-        .css-1cpxqw2, .css-18e3th9 {
-            background: transparent !important;
+        .stButton > button:hover {
+            background-color: #0074cc;
         }
     </style>
 """, unsafe_allow_html=True)
@@ -79,8 +71,8 @@ threshold = df['Total Cognizable IPC crimes'].median()
 df['Target'] = (df['Total Cognizable IPC crimes'] > threshold).astype(int)
 
 # --- Visualizations ---
-st.subheader("📊 Dataset Preview")
-st.dataframe(df.head(), use_container_width=True)
+st.subheader("📊 Full Dataset Preview")
+st.dataframe(df, use_container_width=True)
 
 st.subheader("🎯 Target Distribution")
 fig1, ax1 = plt.subplots()
@@ -129,7 +121,7 @@ ax3.set_xlabel("Predicted")
 ax3.set_ylabel("Actual")
 st.pyplot(fig3)
 
-# --- Predict Crime Level by District ---
+# --- Predict by District ---
 st.subheader("🧠 Predict Crime Level by District")
 
 states = sorted(df['States/UTs'].unique())
@@ -144,11 +136,10 @@ district_row = filtered_df[filtered_df['District'] == selected_district].sort_va
 if district_row.empty:
     st.warning("No data found for the selected district.")
 else:
-    st.markdown("### 🔎 District Crime Data Used for Prediction")
-    display_cols = selected_features
-    st.dataframe(district_row[display_cols], use_container_width=True)
+    st.markdown("### 🔎 Crime Data Used for Prediction")
+    st.dataframe(district_row[selected_features], use_container_width=True)
 
-    input_data = district_row[display_cols].values
+    input_data = district_row[selected_features].values
     input_scaled = scaler.transform(input_data)
     prediction = model.predict(input_scaled)[0]
     proba = model.predict_proba(input_scaled)[0][1]
