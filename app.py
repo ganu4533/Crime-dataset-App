@@ -9,25 +9,54 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
 
-# --- Page config & Styling ---
+# --- Page config & Glassmorphism CSS ---
 st.set_page_config(page_title="Crime Classification App", layout="wide")
 
-# Inject CSS
 st.markdown("""
     <style>
-        .main { background-color: #f7f9fa; }
-        h1, h2, h3 { color: #003262; }
+        body {
+            background: linear-gradient(145deg, #e0f7fa, #ffffff);
+            background-size: cover;
+        }
+
+        .main {
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 16px;
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.2);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            padding: 2rem;
+        }
+
+        h1, h2, h3 {
+            color: #003262;
+            font-weight: 700;
+        }
+
         .stButton>button {
             background-color: #003262;
             color: white;
-            border-radius: 8px;
-            padding: 0.5em 1em;
+            border-radius: 10px;
+            padding: 0.5em 1.2em;
+            border: none;
+            transition: 0.3s ease;
         }
+
+        .stButton>button:hover {
+            background-color: #005fa3;
+        }
+
         .stSelectbox>div>div {
             font-size: 16px;
         }
+
         .stDataFrame th {
-            background-color: #e0e0e0;
+            background-color: #e3f2fd;
+        }
+
+        .css-1cpxqw2, .css-18e3th9 {
+            background: transparent !important;
         }
     </style>
 """, unsafe_allow_html=True)
@@ -103,7 +132,6 @@ st.pyplot(fig3)
 # --- Predict Crime Level by District ---
 st.subheader("🧠 Predict Crime Level by District")
 
-# Cascading filters
 states = sorted(df['States/UTs'].unique())
 selected_state = st.selectbox("Select State/UT", states)
 filtered_df = df[df['States/UTs'] == selected_state]
@@ -120,7 +148,6 @@ else:
     display_cols = selected_features
     st.dataframe(district_row[display_cols], use_container_width=True)
 
-    # Predict
     input_data = district_row[display_cols].values
     input_scaled = scaler.transform(input_data)
     prediction = model.predict(input_scaled)[0]
