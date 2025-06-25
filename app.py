@@ -47,12 +47,16 @@ fig2, ax2 = plt.subplots(figsize=(12, 8))
 sns.heatmap(df.corr(numeric_only=True), cmap="coolwarm", annot=False, ax=ax2)
 st.pyplot(fig2)
 
-# Prepare data
+# Prepare model data
 drop_cols = ['States/UTs', 'District', 'Year', 'Total Cognizable IPC crimes']
 df_model = df.drop(columns=drop_cols)
 
-X = df_model.drop("Target", axis=1)
+X_full = df_model.drop("Target", axis=1)
 y = df_model["Target"]
+
+# Select limited features for prediction
+selected_features = ['Murder', 'Attempt to commit murder', 'Rape', 'Kidnapping and Abduction', 'Robbery']
+X = df_model[selected_features]
 
 # Scale
 scaler = StandardScaler()
@@ -87,8 +91,9 @@ st.pyplot(fig3)
 st.subheader("🔮 Predict Crime Level for a New District")
 
 input_data = []
-for feature in X.columns:
-    val = st.number_input(f"Enter value for **{feature}**", value=0.0)
+st.markdown("Enter values for the following crime types:")
+for feature in selected_features:
+    val = st.number_input(f"{feature}", min_value=0.0, value=0.0, step=1.0)
     input_data.append(val)
 
 if st.button("Predict Crime Level"):
